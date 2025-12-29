@@ -18,6 +18,10 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy backend source code
 COPY backend/ /app/backend/
 
+# Copy debug start script (used only for troubleshooting on Render)
+COPY ../start_debug.sh /app/start_debug.sh
+RUN chmod +x /app/start_debug.sh
+
 # Note: Frontend files are served by Cloudflare Pages, not included in this container
 
 # Create necessary directories
