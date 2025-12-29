@@ -1,0 +1,23 @@
+2025-12-24 15:15:46,789 | INFO     | clavisnova:startup_event:398 - 🎹 Clavisnova Flask Backend Server Starting...
+2025-12-24 15:15:46,790 | INFO     | clavisnova:startup_event:399 - 📊 Version: 3.0.0
+2025-12-24 15:15:46,791 | INFO     | clavisnova:startup_event:400 - 🌐 Host: 0.0.0.0:8080
+2025-12-24 15:15:46,791 | INFO     | clavisnova:startup_event:401 - 📁 Database: sqlite:///./data/clavisnova.db
+2025-12-24 15:15:46,792 | INFO     | clavisnova:startup_event:402 - ✅ Database tables verified
+2025-12-24 15:19:33,626 | INFO     | clavisnova:startup_event:409 - 🎹 Clavisnova Flask Backend Server Starting...
+2025-12-24 15:19:33,627 | INFO     | clavisnova:startup_event:410 - 📊 Version: 3.0.0
+2025-12-24 15:19:33,628 | INFO     | clavisnova:startup_event:411 - 🌐 Host: 0.0.0.0:8080
+2025-12-24 15:19:33,628 | INFO     | clavisnova:startup_event:412 - 📁 Database: sqlite:///./data/clavisnova.db
+2025-12-24 15:19:33,629 | INFO     | clavisnova:startup_event:413 - ✅ Database tables verified
+2025-12-24 15:19:33,633 | INFO     | clavisnova:log_request_info:44 - Request: GET http://localhost/
+2025-12-24 15:19:33,634 | INFO     | clavisnova:shutdown_event:417 - 🛑 Shutting down Clavisnova Flask backend server
+2025-12-24 15:19:33,635 | INFO     | clavisnova:shutdown_event:417 - 🛑 Shutting down Clavisnova Flask backend server
+2025-12-24 15:19:33,636 | INFO     | clavisnova:shutdown_event:417 - 🛑 Shutting down Clavisnova Flask backend server
+2025-12-24 15:19:33,636 | INFO     | clavisnova:log_request_info:44 - Request: GET http://localhost/index.html
+2025-12-24 15:19:33,637 | INFO     | clavisnova:shutdown_event:417 - 🛑 Shutting down Clavisnova Flask backend server
+2025-12-24 15:19:33,638 | INFO     | clavisnova:shutdown_event:417 - 🛑 Shutting down Clavisnova Flask backend server
+2025-12-24 15:19:33,638 | INFO     | clavisnova:shutdown_event:417 - 🛑 Shutting down Clavisnova Flask backend server
+2025-12-28 00:31:22,915 | INFO     | clavisnova:startup_event:713 - 🎹 Clavisnova Flask Backend Server Starting...
+2025-12-28 00:31:22,916 | INFO     | clavisnova:startup_event:714 - 📊 Version: 3.0.0
+2025-12-28 00:31:22,917 | INFO     | clavisnova:startup_event:715 - 🌐 Host: 0.0.0.0:8080
+2025-12-28 00:31:22,917 | INFO     | clavisnova:startup_event:716 - 📁 Database: sqlite:///./data/clavisnova.db
+2025-12-28 00:31:22,918 | INFO     | clavisnova:startup_event:717 - ✅ Database tables verified

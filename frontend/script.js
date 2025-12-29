@@ -1,0 +1,597 @@
+// Page switching functionality for single-page app
+function showSection(id) {
+    console.log('showSection called with id:', id);
+    const views = document.querySelectorAll('.section-view');
+    views.forEach(v => v.classList.remove('active'));
+
+    const target = document.getElementById(id + '-view');
+    console.log('Target element found:', !!target);
+    if (target) {
+        target.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Re-bind form events after section change
+        console.log('Scheduling form initialization...');
+        setTimeout(() => {
+            console.log('Initializing forms after section change...');
+            initForms();
+        }, 100);
+    } else {
+        console.log('Target element not found for id:', id + '-view');
+    }
+}
+
+// Form handling with validation and API integration
+function initForms() {
+    console.log('Initializing forms...');
+
+    // Check if donor-form-view is visible
+    const donorFormView = document.getElementById('donor-form-view');
+    console.log('donor-form-view element found:', !!donorFormView);
+    console.log('donor-form-view is active:', donorFormView ? donorFormView.classList.contains('active') : 'N/A');
+
+    // Remove existing event listeners to prevent duplicates
+    const existingDonorForm = document.querySelector('#donor-form-view form');
+    console.log('Existing donor form found:', !!existingDonorForm);
+    if (existingDonorForm) {
+        console.log('Removing existing donor form event listeners...');
+        const newDonorForm = existingDonorForm.cloneNode(true);
+        existingDonorForm.parentNode.replaceChild(newDonorForm, existingDonorForm);
+    }
+
+    // Also remove existing event listeners for school form to avoid duplicate submits
+    const existingSchoolForm = document.querySelector('#school-form-view form');
+    console.log('Existing school form found:', !!existingSchoolForm);
+    if (existingSchoolForm) {
+        console.log('Removing existing school form event listeners...');
+        const newSchoolForm = existingSchoolForm.cloneNode(true);
+        existingSchoolForm.parentNode.replaceChild(newSchoolForm, existingSchoolForm);
+    }
+
+    // Donor form (Piano Registration) - calls /api/registration
+    const donorForm = document.querySelector('#donor-form-view form');
+    console.log('Donor form found after cleanup:', !!donorForm);
+
+    if (donorForm) {
+        if (!donorForm.dataset.listenerAttached) {
+            console.log('Binding submit event to donor form');
+            donorForm.addEventListener('submit', function(e) {
+            console.log('Submit event triggered, preventing default');
+            e.preventDefault();
+
+            const form = this; // Save reference to form
+
+            console.log('Form submitted, validating...');
+            if (!validateDonorForm(form)) {
+                console.log('Form validation failed');
+                return;
+            }
+            console.log('Form validation passed');
+
+            // Disable submit button to prevent double submission
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            // Map form data to backend expected fields
+            const formDataObj = new FormData(form);
+            const data = {
+                manufacturer: formDataObj.get('brand') || '', // Manufacturer
+                model: formDataObj.get('model') || '', // Model
+                serial: formDataObj.get('serial') || '', // Serial Number
+                year: parseInt(formDataObj.get('year')) || 2020, // Year
+                height: formDataObj.get('type') || '', // Piano Type (Upright/Grand/Digital)
+                finish: formDataObj.get('condition') || '', // Condition
+                color_wood: formDataObj.get('color_wood') || '', // Color/Wood details
+                city_state: formDataObj.get('city') || '', // City & State
+                access: formDataObj.get('access') || '' // Access Details
+            };
+
+            // Submit to backend
+            console.log('Submitting data:', data);
+            console.log('About to call submitFormData...');
+            submitFormData('/api/registration', data)
+                .then(response => {
+                    console.log('🎉 Response received:', response);
+                    console.log('🔍 Checking condition: response.id =', response.id, ', response.message =', response.message);
+                    console.log('✅ Condition result:', !!(response.id && response.message));
+
+                    try {
+                        if (response.id && response.message) { // Check for successful response with ID
+                            console.log('🚀 Success! About to show modal...');
+
+                            showSuccessModal('Thank you for registering your piano! A specialist will contact you within 48 hours for assessment.');
+
+                            console.log('📝 About to reset form...');
+                            form.reset();
+                            console.log('⏰ Setting timeout to return home (5s)...');
+                            setTimeout(() => {
+                                console.log('🏠 Returning to home section...');
+                                // Close modal immediately when navigating away
+                                const modal = document.querySelector('.success-modal-overlay');
+                                if (modal) modal.remove();
+                                showSection('home');
+                            }, 5000);
+                        } else {
+                            console.log('❌ Error response:', response);
+                            showFormMessage(form, response.message || 'Submission failed. Please try again.', 'error');
+                        }
+                    } catch (modalError) {
+                        console.error('💥 Error in response handling:', modalError);
+                        alert('Success! Registration completed. ' + (response.message || ''));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting donor form:', error);
+                    showFormMessage(form, 'Network error. Please check your connection and try again.', 'error');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Registry';
+                });
+            });
+            donorForm.dataset.listenerAttached = 'true';
+        }
+    }
+
+    // School form (Requirements) - calls /api/requirements
+    const schoolForm = document.querySelector('#school-form-view form');
+    if (schoolForm) {
+        if (!schoolForm.dataset.listenerAttached) {
+            schoolForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!validateSchoolForm(this)) return;
+
+            // Disable submit button to prevent double submission
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            // Map form data to backend expected fields (info1-info6)
+            const formData = new FormData(this);
+            const data = {
+                info1: formData.get('school-name') || '', // School Full Name
+                info2: formData.get('current-pianos') || '', // Current Number of Pianos
+                info3: formData.get('preferred-type') || '', // Preferred Piano Type
+                info4: formData.get('teacher-name') || '', // Contact Teacher Name
+                info5: formData.get('background') || '', // Background & Impact Statement
+                info6: 'Maintenance commitment accepted' // Checkbox commitment
+            };
+
+            // Submit to backend
+            submitFormData('/api/requirements', data)
+                .then(response => {
+                    if (response.success !== false) { // Backend returns success in response
+                        // Show modal and wait for 5s countdown before redirecting (keeps in sync with modal)
+                        showSuccessModal('Submission successful');
+                        this.reset();
+                        setTimeout(() => {
+                            const modal = document.querySelector('.success-modal-overlay');
+                            if (modal) modal.remove();
+                            showSection('home');
+                        }, 5000);
+                    } else {
+                        showFormMessage(this, response.message || 'Submission failed. Please try again.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting school form:', error);
+                    showFormMessage(this, 'Network error. Please check your connection and try again.', 'error');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Application';
+                });
+            });
+            schoolForm.dataset.listenerAttached = 'true';
+        }
+    }
+
+    // Contact form (simple client-side handling)
+    const contactForm = document.querySelector('#contact-view form');
+    if (contactForm) {
+        if (!contactForm.dataset.listenerAttached) {
+            contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            if (!validateContactForm(form)) return;
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+            }
+
+            const fd = new FormData(form);
+            const payload = {
+                name: fd.get('name') || '',
+                email: fd.get('email') || '',
+                message: fd.get('message') || ''
+            };
+
+            submitFormData('/api/contact', payload)
+                .then(res => {
+                    if (res && (res.id || res.message)) {
+                        // show modal and redirect after 5s
+                        showSuccessModal('Submission successful');
+                        form.reset();
+                        setTimeout(() => {
+                            const modal = document.querySelector('.success-modal-overlay');
+                            if (modal) modal.remove();
+                            showSection('home');
+                        }, 5000);
+                    } else {
+                        showFormMessage(form, res.message || 'Submission failed. Please try again.', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error submitting contact form:', err);
+                    showFormMessage(form, 'Network error. Please try again.', 'error');
+                })
+                .finally(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Send Message';
+                    }
+                });
+            });
+            contactForm.dataset.listenerAttached = 'true';
+        }
+    }
+}
+
+// Test if JavaScript is working
+console.log('🎹 Script loaded successfully!');
+
+// Test function calls
+function testJavaScript() {
+    console.log('✅ testJavaScript function called');
+    return true;
+}
+
+// Call test immediately
+testJavaScript();
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🏠 DOM loaded, initializing forms...');
+
+    try {
+        initForms();
+        console.log('✅ Forms initialized successfully');
+    } catch (error) {
+        console.error('💥 Error initializing forms:', error);
+    }
+});
+
+// Form validation functions
+function validateDonorForm(form) {
+    console.log('Validating donor form...');
+    let isValid = true;
+    const requiredFields = ['brand', 'type', 'condition', 'city'];
+
+    // Check required fields
+    requiredFields.forEach(fieldName => {
+        const field = form.querySelector(`[name="${fieldName}"]`);
+        console.log(`Checking field ${fieldName}:`, field ? field.value : 'field not found');
+        if (field && !field.value.trim()) {
+            console.log(`Field ${fieldName} is required but empty`);
+            showFieldError(field, 'This field is required');
+            isValid = false;
+        } else if (field) {
+            clearFieldError(field);
+        }
+    });
+
+    // Validate year if provided
+    const yearField = form.querySelector('[name="year"]');
+    if (yearField && yearField.value.trim()) {
+        const year = parseInt(yearField.value);
+        if (isNaN(year) || year < 1800 || year > new Date().getFullYear()) {
+            showFieldError(yearField, 'Please enter a valid year');
+            isValid = false;
+        } else {
+            clearFieldError(yearField);
+        }
+    }
+
+    console.log('Validation result:', isValid);
+    return isValid;
+}
+
+function validateSchoolForm(form) {
+    let isValid = true;
+    const requiredFields = ['school-name', 'current-pianos', 'preferred-type', 'teacher-name', 'background'];
+
+    // Check required fields
+    requiredFields.forEach(fieldName => {
+        const field = form.querySelector(`[name="${fieldName}"]`);
+        if (field && !field.value.trim()) {
+            showFieldError(field, 'This field is required');
+            isValid = false;
+        } else if (field) {
+            clearFieldError(field);
+        }
+    });
+
+    // Check maintenance commitment checkbox
+    const commitmentCheckbox = form.querySelector('input[type="checkbox"]');
+    if (commitmentCheckbox && !commitmentCheckbox.checked) {
+        showFieldError(commitmentCheckbox, 'You must agree to maintain the instrument');
+        isValid = false;
+    } else if (commitmentCheckbox) {
+        clearFieldError(commitmentCheckbox);
+    }
+
+    return isValid;
+}
+
+function validateContactForm(form) {
+    let isValid = true;
+    const requiredFields = ['name', 'email', 'message'];
+
+    requiredFields.forEach(fieldName => {
+        const field = form.querySelector(`input[name="${fieldName}"], textarea[name="${fieldName}"]`);
+        if (field && !field.value.trim()) {
+            showFieldError(field, 'This field is required');
+            isValid = false;
+        } else if (field) {
+            clearFieldError(field);
+        }
+    });
+
+    // Email validation
+    const emailField = form.querySelector('input[type="email"]');
+    if (emailField && emailField.value.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailField.value.trim())) {
+            showFieldError(emailField, 'Please enter a valid email address');
+            isValid = false;
+        } else {
+            clearFieldError(emailField);
+        }
+    }
+
+    return isValid;
+}
+
+function showFieldError(field, message) {
+    // Remove existing error
+    clearFieldError(field);
+
+    field.classList.add('border-red-500');
+
+    // Create error message element
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'text-red-500 text-sm mt-1 field-error';
+    errorDiv.textContent = message;
+
+    // Insert after the field
+    field.parentNode.insertBefore(errorDiv, field.nextSibling);
+}
+
+function clearFieldError(field) {
+    field.classList.remove('border-red-500');
+    const errorDiv = field.parentNode.querySelector('.field-error');
+    if (errorDiv) {
+        errorDiv.remove();
+    }
+}
+
+function showFormMessage(form, message, type) {
+    // Remove existing message
+    const existingMessage = form.querySelector('.form-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+
+    // Create message element
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `form-message ${type === 'success' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'} border px-4 py-3 rounded-xl mb-6 font-medium`;
+    messageDiv.textContent = message;
+
+    // Insert at the top of the form
+    form.insertBefore(messageDiv, form.firstChild);
+
+    // Auto-hide after 5 seconds for success messages
+    if (type === 'success') {
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 5000);
+    }
+}
+
+// Success modal for forms
+function showSuccessModal(message) {
+    console.log('Creating success modal with message:', message);
+
+    // Remove existing modal
+    const existingModal = document.querySelector('.success-modal-overlay');
+    if (existingModal) {
+        console.log('Removing existing modal');
+        existingModal.remove();
+    }
+
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'success-modal-overlay';
+    modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        opacity: 1;
+    `;
+
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'success-modal';
+    modalContent.style.cssText = `
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        max-width: 36rem;
+        margin: 1rem;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        position: relative;
+        z-index: 1000000;
+    `;
+
+    modalContent.innerHTML = `
+        <div style="
+            width: 4rem;
+            height: 4rem;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 1rem;
+        ">
+            ✓
+        </div>
+        <h3 style="
+            color: #1f2937;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        ">Submission Successful!</h3>
+        <p style="
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+            font-size: 1.05rem;
+        ">Submission successful</p>
+        <p style="color:#374151; margin-bottom:1rem; font-weight:600;">Closing in <span id="modal-countdown">5</span>s</p>
+    `;
+
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+
+    console.log('Modal created and displayed');
+
+    // Immediate check
+    setTimeout(() => {
+        const modalCheck = document.querySelector('.success-modal-overlay');
+        console.log('Modal visibility check:', !!modalCheck);
+        if (modalCheck) {
+            console.log('Modal is in DOM, computed style:', window.getComputedStyle(modalCheck).display);
+        }
+    }, 100);
+
+    // Countdown and auto-close
+    let countdown = 5;
+    const countdownEl = modalContent.querySelector('#modal-countdown');
+    const interval = setInterval(() => {
+        countdown -= 1;
+        if (countdownEl) countdownEl.textContent = String(countdown);
+        if (countdown <= 0) {
+            clearInterval(interval);
+            if (modalOverlay.parentNode) {
+                modalOverlay.remove();
+                console.log('Modal auto-closed after 5 seconds');
+            }
+        }
+    }, 1000);
+    // Ensure modal remains until redirect; if navigation occurs earlier, remove modal in navigation handler
+}
+
+function closeSuccessModal() {
+    const modal = document.querySelector('.success-modal-overlay');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Submit form data to backend API
+async function submitFormData(endpoint, data) {
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        console.log('Raw API response:', result);
+
+        // Add success flag based on HTTP status
+        result.success = response.ok;
+
+        console.log('Processed response:', result);
+
+        return result;
+    } catch (error) {
+        console.error('Network error:', error);
+        throw new Error('Network connection failed');
+    }
+}
+
+// Header background on scroll (for sticky nav)
+window.addEventListener('scroll', function() {
+    const nav = document.querySelector('nav');
+    if (window.scrollY > 50) {
+        nav.classList.add('shadow-lg');
+    } else {
+        nav.classList.remove('shadow-lg');
+    }
+});
+
+// Page loading animation
+document.addEventListener('DOMContentLoaded', function() {
+    // Simple page load effect
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+        document.body.style.transition = 'opacity 0.5s ease';
+        document.body.style.opacity = '1';
+    }, 100);
+});
+
+// Smooth scrolling for anchor links (if any)
+document.addEventListener('click', function(e) {
+    if (e.target.matches('a[href^="#"]')) {
+        e.preventDefault();
+        const target = document.querySelector(e.target.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+});
+
+// Add some visual enhancements for form interactions
+document.addEventListener('DOMContentLoaded', function() {
+    // Add focus effects for form inputs
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('focused');
+        });
+    });
+
+    // Add loading states for buttons
+    const buttons = document.querySelectorAll('button[type="submit"]');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            if (this.form && this.form.checkValidity()) {
+                this.classList.add('loading');
+            }
+        });
+    });
+});
+

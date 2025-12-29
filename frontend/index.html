@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+
+
+
+<html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Clavisnova - Piano Donation & Sharing Platform</title> <!-- Tailwind CSS for Responsive Layout -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Font Awesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> <style>
+        .gradient-bg { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        /* Page Switching Logic */
+        .section-view { display: none; }
+        .active { display: block; }
+        .nav-link { cursor: pointer; }
+        .nav-link:hover { opacity: 0.7; }
+        /* Disabled Button Style */
+        .btn-disabled { background-color: #d1d5db !important; cursor: not-allowed !important; transform: none !important; opacity: 0.7; }
+        /* Success Modal Styles */
+        .success-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .success-modal-overlay.show { opacity: 1; }
+        .success-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.7);
+            transition: transform 0.3s ease;
+        }
+        .success-modal-overlay.show .success-modal { transform: scale(1); }
+        .success-modal-content { text-align: center; padding: 2rem; }
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .success-modal h3 {
+            color: #333;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        .success-modal p { color: #666; margin-bottom: 0.5rem; line-height: 1.6; }
+        .redirect-text { color: #10b981; font-weight: 500; font-size: 0.9rem; }
+        /* Loading button state */
+        button.loading {
+            position: relative;
+            color: transparent !important;
+        }
+        button.loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Form message styles */
+        .form-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            border: 1px solid;
+        }
+        .form-message.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+        .form-message.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+        /* Field error styles */
+        .field-error {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        input.error, select.error, textarea.error {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 1px #dc2626;
+        }
+        /* Focused field styling */
+        .focused input, .focused select, .focused textarea {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+    </style> </head> <body class="bg-gray-50 font-sans text-gray-900">
+
+<!-- Navigation Bar -->
+
+<nav class="bg-white shadow-sm sticky top-0 z-50">
+
+    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+
+        <div onclick="showSection('home')" class="text-2xl font-bold text-indigo-900 nav-link flex items-center">
+
+            <i class="fas fa-music mr-2"></i>Clavisnova
+
+        </div>
+
+        <div class="space-x-8 font-medium text-gray-600 hidden md:flex">
+
+            <span onclick="showSection('home')" class="nav-link">Home</span>
+
+            <span onclick="showSection('about')" class="nav-link">About</span>
+
+            <span onclick="showSection('training')" class="nav-link">Programs</span>
+
+            <span onclick="showSection('contact')" class="nav-link">Contact</span>
+
+        </div>
+
+                </div>
+
+                </nav>
+
+<!-- Hero Header -->
+
+<header class="gradient-bg text-white py-24 px-6 text-center">
+
+    <h1 class="text-5xl font-bold mb-4 tracking-tight">Pass the Music, Light the Future</h1>
+
+    <p class="text-xl opacity-90 max-w-2xl mx-auto font-light">We connect idle pianos with schools in need, ensuring every child has the chance to feel the power of music.</p>
+
+</header>
+
+<!-- Main Content -->
+
+<main class="max-w-6xl mx-auto py-12 px-6">
+
+    <!-- Home View -->
+
+    <div id="home-view" class="section-view active">
+
+        <!-- Action Grid -->
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+
+            <!-- Donate Piano -->
+
+            <button onclick="showSection('donor-form')" class="bg-indigo-600 hover:bg-indigo-700 text-white p-8 rounded-3xl shadow-xl transition transform hover:-translate-y-2 flex flex-col items-center">
+
+                <i class="fas fa-hand-holding-heart text-4xl mb-4"></i>
+
+                <span class="text-xl font-bold">Donate a Piano</span>
+
+                <span class="text-xs opacity-80 mt-2 text-center italic">Give an old piano a second life</span>
+
+            </button>
+
+            <!-- School Application -->
+
+            <button onclick="showSection('school-form')" class="bg-emerald-600 hover:bg-emerald-700 text-white p-8 rounded-3xl shadow-xl transition transform hover:-translate-y-2 flex flex-col items-center">
+
+                <i class="fas fa-school text-4xl mb-4"></i>
+
+                <span class="text-xl font-bold">School Request</span>
+
+                <span class="text-xs opacity-80 mt-2 text-center italic">Apply for a piano for your students</span>
+
+            </button>
+
+            <!-- Training & Classes -->
+
+            <button onclick="showSection('training')" class="bg-amber-500 hover:bg-amber-600 text-white p-8 rounded-3xl shadow-xl transition transform hover:-translate-y-2 flex flex-col items-center">
+
+                <i class="fas fa-chalkboard-teacher text-4xl mb-4"></i>
+
+                <span class="text-xl font-bold">Training & Classes</span>
+
+                <span class="text-xs opacity-80 mt-2 text-center italic">Maintenance and Music Theory</span>
+
+            </button>
+
+            <!-- Financial Support (Coming Soon) -->
+
+            <div class="btn-disabled text-white p-8 rounded-3xl shadow-lg flex flex-col items-center relative group">
+
+                <i class="fas fa-donate text-4xl mb-4 text-gray-400"></i>
+
+                <span class="text-xl font-bold text-gray-500">Financial Support</span>
+
+                <span class="text-xs opacity-80 mt-2 text-center text-gray-500 italic">Coming Soon</span>
+
+                <div class="absolute -top-10 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+
+                    Non-profit registration in progress
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Impact Statistics -->
+
+        <div class="text-center">
+
+            <h3 class="text-2xl font-bold text-gray-800 mb-10">Our Impact</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+
+                    <div class="text-5xl font-extrabold text-indigo-600 mb-2">50+</div>
+
+                    <div class="text-gray-500 font-medium uppercase tracking-wider text-sm">Pianos Matched</div>
+
+                    </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+
+                    <div class="text-5xl font-extrabold text-indigo-600 mb-2">3,000+</div>
+
+                    <div class="text-gray-500 font-medium uppercase tracking-wider text-sm">Students Benefited</div>
+
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+
+                    <div class="text-5xl font-extrabold text-indigo-600 mb-2">12</div>
+
+                    <div class="text-gray-500 font-medium uppercase tracking-wider text-sm">Cities Covered</div>
+
+                </div>
+
+            </div>
+
+                    </div>
+
+                        </div>
+
+    <!-- Training View -->
+
+    <div id="training-view" class="section-view">
+
+        <h2 class="text-4xl font-bold mb-8 text-indigo-900">Programs & Educational Schemes</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+
+            <!-- Maintenance -->
+
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-amber-100">
+
+                <div class="text-amber-500 text-3xl mb-4"><i class="fas fa-tools"></i></div>
+
+                <h3 class="text-2xl font-bold mb-4">Maintenance Training</h3>
+
+                <p class="text-gray-600 leading-relaxed mb-6">
+
+                    Owning a piano comes with responsibility. For schools receiving a donation, we select and train a "Piano Guardian" to teach basic care, climate control, and simple troubleshooting.
+
+                </p>
+
+                <ul class="text-sm text-gray-500 space-y-2">
+
+                    <li><i class="fas fa-check text-amber-500 mr-2"></i>Humidity & temperature regulation</li>
+
+                    <li><i class="fas fa-check text-amber-500 mr-2"></i>Cleaning and key maintenance</li>
+
+                    <li><i class="fas fa-check text-amber-500 mr-2"></i>Tuning appointment scheduling</li>
+
+                </ul>
+
+                </div>
+
+            <!-- Theory Classes -->
+
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-indigo-100">
+
+                <div class="text-indigo-500 text-3xl mb-4"><i class="fas fa-book-open"></i></div>
+
+                <h3 class="text-2xl font-bold mb-4">Free Theory Workshops</h3>
+
+                <p class="text-gray-600 leading-relaxed mb-6">
+
+                    Hardware is just the start. During school holidays, we offer free online and offline music theory workshops to help students understand the language of music more deeply.
+
+                </p>
+
+                <ul class="text-sm text-gray-500 space-y-2">
+
+                    <li><i class="fas fa-check text-indigo-500 mr-2"></i>Scheduled holiday sessions</li>
+
+                    <li><i class="fas fa-check text-indigo-500 mr-2"></i>Beginner to advanced levels</li>
+
+                    <li><i class="fas fa-check text-indigo-500 mr-2"></i>Completely free for partner schools</li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+        <div class="bg-indigo-900 text-white p-10 rounded-3xl text-center">
+
+            <h3 class="text-2xl font-bold mb-4">Interested in our Educational Programs?</h3>
+
+            <p class="mb-6 opacity-80">Whether you are a school seeking training or a musician wanting to volunteer, we'd love to hear from you.</p>
+
+            <button onclick="showSection('contact')" class="bg-white text-indigo-900 px-8 py-3 rounded-xl font-bold hover:bg-indigo-50 transition">Enquire Now</button>
+
+        </div>
+
+                        </div>
+
+    <!-- About View -->
+
+    <div id="about-view" class="section-view bg-white p-12 rounded-3xl shadow-sm border border-gray-100">
+
+        <h2 class="text-4xl font-bold mb-8 text-indigo-900">About Us</h2>
+
+        <div class="space-y-6 text-lg text-gray-700 leading-relaxed"> <!-- about的内容改这块 -->
+
+            <p>
+
+                "Clavisnova" is a volunteer-led initiative founded by musicians and educators. We believe that high-quality instruments should not collect dust in corners while schools struggle for arts funding.
+
+            </p>
+
+            <p>
+
+                We found that while many families own quality pianos that are no longer used, many schools—especially in under-resourced areas—cannot afford even a basic upright piano. Our mission is to bridge this gap.
+
+            </p>
+
+            <p>
+
+                By facilitating the transfer of these instruments, we aren't just moving heavy wood; we are opening doors to creativity, discipline, and joy for thousands of students.
+
+            </p>
+
+                    </div>
+
+                        </div>
+
+    <!-- Contact View -->
+
+    <div id="contact-view" class="section-view bg-white p-12 rounded-3xl shadow-sm border border-gray-100">
+
+        <h2 class="text-4xl font-bold mb-10 text-indigo-900">Contact Us</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-16">
+
+            <div>
+
+                <p class="text-xl text-gray-700 mb-8 font-light">Questions, suggestions, or media inquiries? We are waiting for your message.</p>
+
+                <div class="space-y-6"> <!-- 联系我们改这块 -->
+
+                    <div class="flex items-center text-gray-600 text-lg">
+
+                        <i class="fas fa-envelope w-10 text-indigo-500"></i> info@pianoforschools.org
+
+                    </div>
+
+                    <div class="flex items-center text-gray-600 text-lg">
+
+                        <i class="fas fa-phone w-10 text-indigo-500"></i> (555) 123-4567
+
+                    </div>
+
+                    <div class="flex items-center text-gray-600 text-lg">
+
+                        <i class="fas fa-map-marker-alt w-10 text-indigo-500"></i> Lincoln Center, New York, NY
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <form class="space-y-4">
+
+                <input type="text" name="name" placeholder="Full Name" class="w-full border-gray-200 p-4 rounded-xl border focus:ring-2 focus:ring-indigo-500 outline-none" required>
+
+                <input type="email" name="email" placeholder="Email Address" class="w-full border-gray-200 p-4 rounded-xl border focus:ring-2 focus:ring-indigo-500 outline-none" required>
+
+                <textarea name="message" placeholder="Your Message" rows="5" class="w-full border-gray-200 p-4 rounded-xl border focus:ring-2 focus:ring-indigo-500 outline-none" required></textarea>
+
+                <button class="bg-indigo-600 text-white w-full py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition">Send Message</button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <!-- Donor Form View -->
+
+    <div id="donor-form-view" class="section-view bg-white rounded-3xl shadow-2xl p-10 border border-gray-50">
+
+        <h2 class="text-3xl font-bold mb-8 text-indigo-800 border-b pb-4">Piano Donation Registry</h2>
+
+        <form class="space-y-8" method="post" action="#">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer*</label>
+
+                    <input type="text" name="brand" placeholder="e.g. Steinway, Yamaha, Kawai" class="w-full border-gray-300 rounded-xl p-3.5 border focus:ring-2 focus:ring-indigo-500" required>
+
+                    </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Model</label>
+
+                    <input type="text" name="model" placeholder="e.g. U1, Model B" class="w-full border-gray-300 rounded-xl p-3.5 border">
+
+                            </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Serial #</label>
+
+                    <input type="text" name="serial" placeholder="Found inside the piano" class="w-full border-gray-300 rounded-xl p-3.5 border">
+
+                            </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Approx. Year</label>
+
+                    <input type="number" name="year" placeholder="e.g. 1995" class="w-full border-gray-300 rounded-xl p-3.5 border" min="1800" max="2025">
+
+                            </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Type*</label>
+
+                    <select name="type" class="w-full border-gray-300 rounded-xl p-3.5 border" required>
+
+                        <option value="">Select Type</option>
+
+                        <option>Upright</option>
+
+                        <option>Grand</option>
+
+                        <option>Digital</option>
+
+                    </select>
+
+                            </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Height / Length</label>
+
+                    <input type="text" name="height_length" placeholder="In inches or cm" class="w-full border-gray-300 rounded-xl p-3.5 border">
+
+                            </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Finish / Color</label>
+
+                    <input type="text" name="finish" placeholder="e.g. Polished Ebony, Walnut" class="w-full border-gray-300 rounded-xl p-3.5 border">
+
+                    </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Condition*</label>
+
+                    <select name="condition" class="w-full border-gray-300 rounded-xl p-3.5 border" required>
+
+                        <option value="">Select Condition</option>
+
+                        <option>Excellent - Like new</option>
+
+                        <option>Good - Playable</option>
+
+                        <option>Fair - Needs work</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="bg-indigo-50 p-6 rounded-2xl">
+
+                <h4 class="font-bold text-indigo-900 mb-4">Finish / Color (details)</h4>
+
+                <input type="text" name="color_wood" placeholder="e.g. Black Mahogany, White Oak" class="w-full border-gray-300 rounded-xl p-3 border">
+
+            </div>
+
+            <div class="bg-indigo-50 p-6 rounded-2xl">
+
+                <h4 class="font-bold text-indigo-900 mb-4 flex items-center">
+
+                    <i class="fas fa-truck mr-2"></i> Location & Logistics
+
+                </h4>
+
+                <div class="space-y-4">
+
+                    <div>
+
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">City & State*</label>
+
+                        <input type="text" name="city" placeholder="e.g. Manhattan, NY" class="w-full border-gray-300 rounded-xl p-3 border" required>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Access Details (Floor, Stairs, Elevator)*</label>
+
+                        <textarea name="access" rows="3" placeholder="e.g. 2nd floor, service elevator available, 3 small steps at the entrance." class="w-full border-gray-300 rounded-xl p-3 border" required></textarea>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="flex justify-end space-x-6">
+
+                <button type="button" onclick="showSection('home')" class="px-8 py-3 text-gray-500 font-bold">Cancel</button>
+
+                <button type="submit" class="bg-indigo-600 text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700">Submit Registry</button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- School Form View -->
+
+    <div id="school-form-view" class="section-view bg-white rounded-3xl shadow-2xl p-10 border border-gray-50">
+
+        <h2 class="text-3xl font-bold mb-8 text-emerald-800 border-b pb-4">School Piano Application</h2>
+
+        <form class="space-y-8">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">School Full Name*</label>
+
+                    <input type="text" name="school-name" class="w-full border-gray-300 rounded-xl p-3.5 border focus:ring-2 focus:ring-emerald-500" required>
+
+                </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Current Number of Pianos*</label>
+
+                    <input type="number" name="current-pianos" placeholder="0" class="w-full border-gray-300 rounded-xl p-3.5 border" min="0" required>
+
+                </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Preferred Piano Type*</label>
+
+                    <select name="preferred-type" class="w-full border-gray-300 rounded-xl p-3.5 border" required>
+
+                        <option value="">Select Type</option>
+
+                        <option>Upright (Space saving)</option>
+
+                        <option>Grand (For hall/auditorium)</option>
+
+                        <option>Digital (For practice rooms)</option>
+
+                        <option>No Preference</option>
+
+                    </select>
+
+                </div>
+
+                <div>
+
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Contact Teacher Name*</label>
+
+                    <input type="text" name="teacher-name" class="w-full border-gray-300 rounded-xl p-3.5 border" required>
+
+                </div>
+
+            </div>
+
+            <div>
+
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Background & Impact Statement*</label>
+
+                <textarea name="background" rows="5" placeholder="Describe your music program and how this donation will benefit students. This helps donors understand the value of their gift." class="w-full border-gray-300 rounded-xl p-3.5 border" required></textarea>
+
+            </div>
+
+            <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
+
+                <label class="flex items-start space-x-3 text-emerald-900 cursor-pointer">
+
+                    <input type="checkbox" name="commitment" required class="mt-1.5 rounded text-emerald-600 focus:ring-emerald-500">
+
+                    <span class="text-sm font-medium leading-relaxed">We commit to regular professional tuning and maintenance for the donated instrument.</span>
+
+                </label>
+
+            </div>
+
+            <div class="flex justify-end space-x-6">
+
+                <button type="button" onclick="showSection('home')" class="px-8 py-3 text-gray-500 font-bold">Cancel</button>
+
+                <button type="submit" class="bg-emerald-600 text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700">Submit Application</button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</main>
+
+<footer class="bg-white border-t py-12 text-center">
+
+    <div class="max-w-6xl mx-auto px-6">
+
+        <div class="text-indigo-900 font-bold text-xl mb-4">Clavisnova</div>
+
+        <p class="text-gray-500 text-sm mb-6">A non-profit initiative connecting donors with the next generation of musicians.</p>
+
+        <div class="text-gray-400 text-xs uppercase tracking-widest">
+
+            &copy; 2024 Clavisnova Project. All rights reserved.
+
+        </div>
+
+    </div>
+
+</footer>
+
+<script src="script.js"></script>
+
+</body> </html>
