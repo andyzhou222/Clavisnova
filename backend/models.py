@@ -3,6 +3,17 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import sessionmaker
 from config import settings
+
+# Ensure SQLAlchemy uses psycopg3 dialect when a plain postgresql URL is provided.
+def _build_sqlalchemy_url(raw_url: str) -> str:
+    if not raw_url:
+        return raw_url
+    if raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+"):
+        return raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return raw_url
+
+# Replace settings.database_url in-place so subsequent engine creation uses the adjusted URL.
+settings.database_url = _build_sqlalchemy_url(settings.database_url)
 import os
 
 Base = declarative_base()
