@@ -19,39 +19,11 @@ from logger import logger_manager
 from models import create_tables
 
 # Initialize Flask app
-# Serve static files from frontend directory
-app = Flask(__name__, static_folder='../frontend', static_url_path='')
+# Note: Static files are served by Cloudflare Pages, not by this Flask app
+app = Flask(__name__)
 
-# Frontend directory path - 直接硬编码路径
-# 获取当前脚本的绝对路径，然后向上两级到项目根目录
-import sys
-current_script = os.path.abspath(__file__)
-backend_dir = os.path.dirname(current_script)
-project_root = os.path.dirname(backend_dir)
-frontend_dir = os.path.join(project_root, 'frontend')
-
-FRONTEND_DIR = Path(frontend_dir)
-
-print(f"DEBUG: Current script: {current_script}")
-print(f"DEBUG: Backend dir: {backend_dir}")
-print(f"DEBUG: Project root: {project_root}")
-print(f"DEBUG: Frontend dir: {frontend_dir}")
-print(f"DEBUG: Frontend dir exists: {os.path.exists(frontend_dir)}")
-
-# 验证前端目录存在
-if not os.path.exists(frontend_dir):
-    print(f"CRITICAL ERROR: Frontend directory not found at {frontend_dir}")
-    print("Please ensure you're running from the correct project directory")
-    print("Expected structure: project/frontend/index.html")
-    raise FileNotFoundError(f"Frontend directory not found: {frontend_dir}")
-
-index_file = os.path.join(frontend_dir, 'index.html')
-if not os.path.exists(index_file):
-    print(f"CRITICAL ERROR: index.html not found at {index_file}")
-    raise FileNotFoundError(f"index.html not found: {index_file}")
-
-print(f"✅ Frontend directory verified: {FRONTEND_DIR}")
-print(f"✅ Index file verified: {index_file}")
+print("✅ Backend-only deployment: Frontend served by Cloudflare Pages")
+print("✅ Static file serving disabled in Flask app")
 
 # CORS - temporarily disable to test DELETE
 # CORS(app, origins=settings.cors_origins, supports_credentials=True)
@@ -85,46 +57,28 @@ def favicon():
     # Return a simple 204 No Content for favicon requests
     return '', 204
 
-# Frontend pages
-@app.route('/index.html', methods=['GET'])
+# Frontend pages - Redirect to Cloudflare Pages domain
 @app.route('/', methods=['GET'])
-def index_page():
-    """Serve the main index page"""
-    try:
-        # 调试信息
-        print(f"DEBUG: Serving index.html from {FRONTEND_DIR}")
-        print(f"DEBUG: File exists: {(FRONTEND_DIR / 'index.html').exists()}")
+def root_redirect():
+    """Redirect root to frontend domain"""
+    frontend_url = os.getenv('FRONTEND_URL', 'https://your-frontend-domain.pages.dev')
+    return jsonify({
+        "message": "Clavisnova Backend API",
+        "frontend": frontend_url,
+        "docs": "/api/health"
+    })
 
-        response = send_from_directory(FRONTEND_DIR, 'index.html', mimetype='text/html')
-        print("DEBUG: send_from_directory succeeded")
-        return response
-    except Exception as e:
-        print(f"ERROR: Failed to serve index.html: {e}")
-        return jsonify({"error": f"index.html not found: {str(e)}"}), 404
-
+@app.route('/index.html', methods=['GET'])
 @app.route('/registration.html', methods=['GET'])
-def registration_page():
-    """Serve the registration page"""
-    try:
-        return send_from_directory(FRONTEND_DIR, 'registration.html', mimetype='text/html')
-    except FileNotFoundError:
-        return jsonify({"error": "registration.html not found"}), 404
-
 @app.route('/requirements.html', methods=['GET'])
-def requirements_page():
-    """Serve the requirements page"""
-    try:
-        return send_from_directory(FRONTEND_DIR, 'requirements.html', mimetype='text/html')
-    except FileNotFoundError:
-        return jsonify({"error": "requirements.html not found"}), 404
-
 @app.route('/admin.html', methods=['GET'])
-def admin_page():
-    """Serve the admin page"""
-    try:
-        return send_from_directory(FRONTEND_DIR, 'admin.html', mimetype='text/html')
-    except FileNotFoundError:
-        return jsonify({"error": "admin.html not found"}), 404
+def frontend_redirect():
+    """Redirect frontend routes to Cloudflare Pages"""
+    frontend_url = os.getenv('FRONTEND_URL', 'https://your-frontend-domain.pages.dev')
+    return jsonify({
+        "message": "Frontend served by Cloudflare Pages",
+        "redirect_to": frontend_url
+    }), 302
 
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
