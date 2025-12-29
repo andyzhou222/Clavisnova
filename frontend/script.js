@@ -244,8 +244,8 @@ function initForms() {
 // Test if JavaScript is working
 console.log('🎹 Script loaded successfully!');
 
-// API base for backend requests - change to your API domain (Render or api.clavisnova.org)
-const API_BASE = 'https://api.clavisnova.org';
+// API base for backend requests - change to your API domain (Render)
+const API_BASE = 'https://clavisnova.onrender.com';
 
 // Test function calls
 function testJavaScript() {
