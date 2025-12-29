@@ -244,6 +244,9 @@ function initForms() {
 // Test if JavaScript is working
 console.log('🎹 Script loaded successfully!');
 
+// API base for backend requests - change to your API domain (Render or api.clavisnova.org)
+const API_BASE = 'https://api.clavisnova.org';
+
 // Test function calls
 function testJavaScript() {
     console.log('✅ testJavaScript function called');
@@ -516,7 +519,9 @@ function closeSuccessModal() {
 // Submit form data to backend API
 async function submitFormData(endpoint, data) {
     try {
-        const response = await fetch(endpoint, {
+        // If endpoint is a relative path like "/api/...", prepend API_BASE
+        const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
