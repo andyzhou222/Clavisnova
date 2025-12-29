@@ -151,5 +151,5 @@ def get_db():
     finally:
         db.close()
 
-# Create tables on import
-create_tables()
+# Note: table creation is performed explicitly via `backend/init_db.py`
+# to avoid attempting DB connections at import time (which can fail in dev).
