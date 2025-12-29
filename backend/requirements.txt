@@ -3,8 +3,8 @@ flask==2.3.3
 flask-cors==4.0.0
 werkzeug==2.3.7
 
-# 数据库 - 使用1.4版本，无需复杂依赖
-sqlalchemy==1.4.46
+# 数据库 - 使用较新 1.4.x 以支持 psycopg3 方言入口
+sqlalchemy==1.4.49
 
 # 日志 - 使用内置logging模块，无需外部依赖
 
