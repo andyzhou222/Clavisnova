@@ -8,8 +8,14 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+# Ensure backend modules are importable when running as a package
+current_dir = Path(__file__).resolve().parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
 from config import settings
 from database import db_manager
+from supabase_client import create_registration as supabase_create_registration, create_requirements as supabase_create_requirements, create_contact as supabase_create_contact
 from schemas import (
     RegistrationCreate, RegistrationResponse, RequirementsCreate, RequirementsResponse,
     PaginationParams, PaginatedResponse, StatsResponse, HealthResponse, ErrorResponse,
@@ -147,7 +153,34 @@ def create_registration():
 
         logger_manager.logger.info(f"Registration object created successfully: manufacturer={registration.manufacturer}, model={registration.model}")
 
-        # Save to database synchronously
+        # Try REST fallback (Supabase) if configured
+        use_rest = os.getenv("USE_SUPABASE_REST", "false").lower() in ("1", "true", "yes")
+        if use_rest:
+            # map to supabase fields expected by table
+            sb_payload = {
+                "manufacturer": registration.manufacturer,
+                "model": registration.model,
+                "serial": registration.serial,
+                "year": registration.year,
+                "height": registration.height,
+                "finish": registration.finish,
+                "color_wood": registration.color_wood,
+                "access": registration.access,
+                "city_state": registration.city_state,
+                "ip_address": registration.ip_address,
+                "user_agent": registration.user_agent
+            }
+            try:
+                created = supabase_create_registration(sb_payload)
+                result_id = created.get("id")
+                logger_manager.logger.info(f"Registration saved via Supabase REST with ID: {result_id}")
+                response = RegistrationResponse(id=result_id, message="Registration created successfully")
+                return jsonify(response.__dict__), 201
+            except Exception as e:
+                logger_manager.logger.error(f"Supabase REST error: {e}", exc_info=True)
+                return jsonify({"message": "Supabase REST error"}), 500
+
+        # Save to database synchronously (default)
         db = db_manager.get_db()
         try:
             reg = Registration(
@@ -206,6 +239,26 @@ def create_requirements():
             user_agent=request.headers.get('User-Agent')
         )
 
+        use_rest = os.getenv("USE_SUPABASE_REST", "false").lower() in ("1", "true", "yes")
+        if use_rest:
+            sb_payload = {
+                "school_name": requirements.school_name,
+                "current_pianos": requirements.current_pianos,
+                "preferred_type": requirements.preferred_type,
+                "teacher_name": requirements.teacher_name,
+                "background": requirements.background,
+                "commitment": requirements.commitment,
+                "ip_address": requirements.ip_address,
+                "user_agent": requirements.user_agent
+            }
+            try:
+                created = supabase_create_requirements(sb_payload)
+                result_id = created.get("id")
+                return jsonify(RequirementsResponse(id=result_id, message="Requirements submitted successfully").__dict__), 201
+            except Exception as e:
+                logger_manager.logger.error(f"Supabase REST error for requirements: {e}", exc_info=True)
+                return jsonify({"message": "Supabase REST error"}), 500
+
         # Save to database synchronously
         db = db_manager.get_db()
         try:
@@ -249,6 +302,23 @@ def create_contact():
 
         if not message_text or not message_text.strip():
             return jsonify(ErrorResponse(message="Message cannot be empty").__dict__), 400
+
+        use_rest = os.getenv("USE_SUPABASE_REST", "false").lower() in ("1", "true", "yes")
+        if use_rest:
+            sb_payload = {
+                "name": name,
+                "email": email,
+                "message": message_text,
+                "ip_address": request.remote_addr,
+                "user_agent": request.headers.get('User-Agent')
+            }
+            try:
+                created = supabase_create_contact(sb_payload)
+                cid = created.get("id")
+                return jsonify({"id": cid, "message": "Contact submitted"}), 201
+            except Exception as e:
+                logger_manager.logger.error(f"Supabase REST error for contact: {e}", exc_info=True)
+                return jsonify({"message": "Supabase REST error"}), 500
 
         db = db_manager.get_db()
         try:
