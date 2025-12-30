@@ -31,8 +31,18 @@ app = Flask(__name__)
 print("✅ Backend-only deployment: Frontend served by Cloudflare Pages")
 print("✅ Static file serving disabled in Flask app")
 
-# CORS - temporarily disable to test DELETE
-# CORS(app, origins=settings.cors_origins, supports_credentials=True)
+# CORS - enable for configured frontend origins
+from flask_cors import CORS as _CORS
+
+# Ensure FRONTEND_URL from env is included in allowed origins
+frontend_url = os.getenv("FRONTEND_URL")
+cors_origins = list(settings.cors_origins) if hasattr(settings, "cors_origins") else []
+if frontend_url and frontend_url not in cors_origins:
+    cors_origins.append(frontend_url)
+
+# Apply CORS with credentials support
+_CORS(app, origins=cors_origins, supports_credentials=True)
+print(f"✅ CORS enabled for origins: {cors_origins}")
 
 # Request logging middleware
 @app.before_request
