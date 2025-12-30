@@ -54,82 +54,82 @@ function initForms() {
 
     if (donorForm) {
         if (!donorForm.dataset.listenerAttached) {
-            console.log('Binding submit event to donor form');
-            donorForm.addEventListener('submit', function(e) {
-            console.log('Submit event triggered, preventing default');
-            e.preventDefault();
+            console.log('Binding submit event to donor form (robust)');
 
-            const form = this; // Save reference to form
+            // Shared submit handler function
+            const donorSubmitHandler = async function(e) {
+                if (e && e.preventDefault) e.preventDefault();
+                const form = donorForm; // reference the current donor form
+                console.log('Submit event triggered (shared handler)');
 
-            console.log('Form submitted, validating...');
-            if (!validateDonorForm(form)) {
-                console.log('Form validation failed');
-                return;
-            }
-            console.log('Form validation passed');
+                console.log('Form submitted, validating...');
+                if (!validateDonorForm(form)) {
+                    console.log('Form validation failed');
+                    return;
+                }
+                console.log('Form validation passed');
 
-            // Disable submit button to prevent double submission
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting...';
+                // Disable submit button to prevent double submission
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+                }
 
-            // Map form data to backend expected fields
-            const formDataObj = new FormData(form);
-            const data = {
-                manufacturer: formDataObj.get('brand') || '', // Manufacturer
-                model: formDataObj.get('model') || '', // Model
-                serial: formDataObj.get('serial') || '', // Serial Number
-                year: parseInt(formDataObj.get('year')) || 2020, // Year
-                height: formDataObj.get('type') || '', // Piano Type (Upright/Grand/Digital)
-                finish: formDataObj.get('condition') || '', // Condition
-                color_wood: formDataObj.get('color_wood') || '', // Color/Wood details
-                city_state: formDataObj.get('city') || '', // City & State
-                access: formDataObj.get('access') || '' // Access Details
-            };
+                // Map form data to backend expected fields
+                const formDataObj = new FormData(form);
+                const data = {
+                    manufacturer: formDataObj.get('brand') || '', // Manufacturer
+                    model: formDataObj.get('model') || '', // Model
+                    serial: formDataObj.get('serial') || '', // Serial Number
+                    year: parseInt(formDataObj.get('year')) || 2020, // Year
+                    height: formDataObj.get('type') || '', // Piano Type (Upright/Grand/Digital)
+                    finish: formDataObj.get('condition') || '', // Condition
+                    color_wood: formDataObj.get('color_wood') || '', // Color/Wood details
+                    city_state: formDataObj.get('city') || '', // City & State
+                    access: formDataObj.get('access') || '' // Access Details
+                };
 
-            // Submit to backend
-            console.log('Submitting data:', data);
-            console.log('About to call submitFormData...');
-            submitFormData('/api/registration', data)
-                .then(response => {
+                // Submit to backend
+                console.log('Submitting data:', data);
+                try {
+                    const response = await submitFormData('/api/registration', data);
                     console.log('🎉 Response received:', response);
-                    console.log('🔍 Checking condition: response.id =', response.id, ', response.message =', response.message);
-                    console.log('✅ Condition result:', !!(response.id && response.message));
-
-                    try {
-                        if (response.id && response.message) { // Check for successful response with ID
-                            console.log('🚀 Success! About to show modal...');
-
-                            showSuccessModal('Thank you for registering your piano! A specialist will contact you within 48 hours for assessment.');
-
-                            console.log('📝 About to reset form...');
-                            form.reset();
-                            console.log('⏰ Setting timeout to return home (5s)...');
-                            setTimeout(() => {
-                                console.log('🏠 Returning to home section...');
-                                // Close modal immediately when navigating away
-                                const modal = document.querySelector('.success-modal-overlay');
-                                if (modal) modal.remove();
-                                showSection('home');
-                            }, 5000);
-                        } else {
-                            console.log('❌ Error response:', response);
-                            showFormMessage(form, response.message || 'Submission failed. Please try again.', 'error');
-                        }
-                    } catch (modalError) {
-                        console.error('💥 Error in response handling:', modalError);
-                        alert('Success! Registration completed. ' + (response.message || ''));
+                    if (response.id && response.message) {
+                        showSuccessModal('Thank you for registering your piano! A specialist will contact you within 48 hours for assessment.');
+                        form.reset();
+                        setTimeout(() => {
+                            const modal = document.querySelector('.success-modal-overlay');
+                            if (modal) modal.remove();
+                            showSection('home');
+                        }, 5000);
+                    } else {
+                        console.log('❌ Error response:', response);
+                        showFormMessage(form, response.message || 'Submission failed. Please try again.', 'error');
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Error submitting donor form:', error);
                     showFormMessage(form, 'Network error. Please check your connection and try again.', 'error');
-                })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Registry';
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Registry';
+                    }
+                }
+            };
+
+            // Bind submit event
+            donorForm.addEventListener('submit', donorSubmitHandler);
+
+            // Also bind click on submit button to ensure JS path is used even if browser triggers default submit
+            const submitBtn = donorForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    donorSubmitHandler();
                 });
-            });
+            }
+
             donorForm.dataset.listenerAttached = 'true';
         }
     }
