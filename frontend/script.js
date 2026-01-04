@@ -609,3 +609,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Global delegated click handler: ensure any button click inside a form triggers the JS submit flow.
+document.addEventListener('click', function(e) {
+    try {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        // If button is inside a form and is not a native submit (type="button" or no type),
+        // dispatch a synthetic 'submit' event on the form so attached submit handlers run.
+        const form = btn.form || btn.closest('form');
+        if (form && (btn.type === 'button' || !btn.hasAttribute('type'))) {
+            e.preventDefault();
+            // dispatch submit event that bubbles and is cancelable
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
+    } catch (err) {
+        console.error('Delegated click handler error:', err);
+    }
+}, true);
+
