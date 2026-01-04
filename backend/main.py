@@ -919,9 +919,9 @@ def startup_event():
     logger_manager.logger.info(f"📁 Database: {settings.database_url}")
     logger_manager.logger.info("✅ Database tables verified")
 
-def shutdown_event():
-    """Application shutdown tasks"""
-    logger_manager.logger.info("🛑 Shutting down Clavisnova Flask backend server")
+def cleanup_app_context():
+    """Application context cleanup tasks"""
+    logger_manager.logger.info("🧹 Cleaning up Flask application context")
 
 # Register startup/shutdown functions
 with app.app_context():
@@ -929,7 +929,7 @@ with app.app_context():
 
 @app.teardown_appcontext
 def teardown_appcontext(exception=None):
-    shutdown_event()
+    cleanup_app_context()
 
 if __name__ == '__main__':
     app.run(
