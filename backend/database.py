@@ -20,11 +20,15 @@ class DatabaseManager:
         db = self.get_db()
         try:
             registration = Registration(
-                name=data["name"],
-                email=data["email"],
-                age=data["age"],
-                experience=data["experience"],
-                message=data.get("message", ""),
+                manufacturer=data["manufacturer"],
+                model=data["model"],
+                serial=data["serial"],
+                year=data["year"],
+                height=data["height"],
+                finish=data["finish"],
+                color_wood=data["color_wood"],
+                city_state=data["city_state"],
+                access=data.get("access", ""),
                 ip_address=data.get("ip_address", ""),
                 user_agent=data.get("user_agent", "")
             )

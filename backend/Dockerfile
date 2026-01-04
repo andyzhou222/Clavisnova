@@ -40,7 +40,17 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Start with gunicorn (Render will set PORT environment variable)
-CMD gunicorn -w 4 -b 0.0.0.0:$PORT --access-logfile /app/logs/access.log --error-logfile /app/logs/error.log main:app
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Initialize database tables\n\
+echo "Initializing database..."\n\
+python -c "from backend.models import create_tables; create_tables(); print(\"Tables created successfully\")"\n\
+\n\
+# Start gunicorn\n\
+echo "Starting application..."\n\
+exec gunicorn -w 4 -b 0.0.0.0:$PORT --access-logfile /app/logs/access.log --error-logfile /app/logs/error.log main:app' > /app/start.sh && chmod +x /app/start.sh
+
+# Start with database initialization and gunicorn
+CMD ["/app/start.sh"]
 
 

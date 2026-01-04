@@ -80,7 +80,29 @@ function initForms() {
                 const submitBtn = findSubmitButton(form);
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.textContent = 'Submitting...';
+                    submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+                    // Add spinner styles if not already present
+                    if (!document.querySelector('#spinner-styles')) {
+                        const style = document.createElement('style');
+                        style.id = 'spinner-styles';
+                        style.textContent = `
+                            .spinner {
+                                display: inline-block;
+                                width: 16px;
+                                height: 16px;
+                                border: 2px solid #ffffff;
+                                border-radius: 50%;
+                                border-top-color: transparent;
+                                animation: spin 1s ease-in-out infinite;
+                                margin-right: 8px;
+                            }
+                            @keyframes spin {
+                                to { transform: rotate(360deg); }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
                 }
 
                 // Map form data to backend expected fields
@@ -116,11 +138,22 @@ function initForms() {
                     }
                 } catch (error) {
                     console.error('Error submitting donor form:', error);
-                    showFormMessage(form, 'Network error. Please check your connection and try again.', 'error');
+
+                    let errorMessage = 'An unexpected error occurred. Please try again.';
+
+                    if (error.message.includes('timed out')) {
+                        errorMessage = 'Request timed out. The server may be busy. Please try again in a moment.';
+                    } else if (error.message.includes('Network connection failed')) {
+                        errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+                    } else if (error.message.includes('Request failed')) {
+                        errorMessage = 'Server error. Please try again later.';
+                    }
+
+                    showFormMessage(form, errorMessage, 'error');
                 } finally {
                     if (submitBtn) {
                         submitBtn.disabled = false;
-                        submitBtn.textContent = 'Submit Registry';
+                        submitBtn.innerHTML = 'Submit Registry';
                     }
                 }
             };
@@ -528,32 +561,57 @@ function closeSuccessModal() {
     }
 }
 
-// Submit form data to backend API
-async function submitFormData(endpoint, data) {
-    try {
-        // If endpoint is a relative path like "/api/...", prepend API_BASE
-        const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
+// Submit form data to backend API with timeout and retry
+async function submitFormData(endpoint, data, maxRetries = 2) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
-        const result = await response.json();
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Submitting to ${url} (attempt ${attempt + 1}/${maxRetries + 1})`);
 
-        console.log('Raw API response:', result);
+            // Create AbortController for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-        // Add success flag based on HTTP status
-        result.success = response.ok;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+                signal: controller.signal
+            });
 
-        console.log('Processed response:', result);
+            clearTimeout(timeoutId);
 
-        return result;
-    } catch (error) {
-        console.error('Network error:', error);
-        throw new Error('Network connection failed');
+            const result = await response.json();
+            console.log('Raw API response:', result);
+
+            // Add success flag based on HTTP status
+            result.success = response.ok;
+            console.log('Processed response:', result);
+
+            return result;
+
+        } catch (error) {
+            console.error(`Network error (attempt ${attempt + 1}):`, error);
+
+            // If this is the last attempt, throw the error
+            if (attempt === maxRetries) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out. Please check your connection and try again.');
+                } else if (error.message.includes('fetch')) {
+                    throw new Error('Network connection failed. Please check your internet connection.');
+                } else {
+                    throw new Error(`Request failed: ${error.message}`);
+                }
+            }
+
+            // Wait before retrying (exponential backoff)
+            const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
     }
 }
 

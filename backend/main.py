@@ -405,8 +405,10 @@ def get_registrations():
                 search_filter = f"%{search}%"
                 query = query.filter(
                     or_(
-                        Registration.name.ilike(search_filter),
-                        Registration.email.ilike(search_filter)
+                        Registration.manufacturer.ilike(search_filter),
+                        Registration.model.ilike(search_filter),
+                        Registration.serial.ilike(search_filter),
+                        Registration.city_state.ilike(search_filter)
                     )
                 )
 
@@ -914,10 +916,19 @@ def export_requirements():
 def startup_event():
     """Application startup tasks"""
     logger_manager.logger.info("🎹 Clavisnova Flask Backend Server Starting...")
+
+    # Create database tables if they don't exist
+    try:
+        from models import create_tables
+        create_tables()
+        logger_manager.logger.info("✅ Database tables created/verified")
+    except Exception as e:
+        logger_manager.logger.error(f"❌ Failed to create database tables: {e}")
+        raise e
+
     logger_manager.logger.info(f"📊 Version: {settings.version}")
     logger_manager.logger.info(f"🌐 Host: {settings.host}:{settings.port}")
     logger_manager.logger.info(f"📁 Database: {settings.database_url}")
-    logger_manager.logger.info("✅ Database tables verified")
 
 def cleanup_app_context():
     """Application context cleanup tasks"""
