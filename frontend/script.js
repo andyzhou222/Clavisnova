@@ -282,7 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function validateDonorForm(form) {
     console.log('Validating donor form...');
     let isValid = true;
-    const requiredFields = ['brand', 'type', 'condition', 'city'];
+    // Ensure frontend required fields match backend expectations (include 'model')
+    const requiredFields = ['brand', 'model', 'type', 'condition', 'city'];
 
     // Check required fields
     requiredFields.forEach(fieldName => {
@@ -629,4 +630,113 @@ document.addEventListener('click', function(e) {
         console.error('Delegated click handler error:', err);
     }
 }, true);
+
+// Robust click-to-submit handler for elements with `.js-submit`.
+// This directly handles clicks on submit-like buttons and performs validation+submission,
+// avoiding reliance on per-form listeners which may be lost if forms are cloned.
+if (!window.__jsSubmitHandlerInstalled) {
+    window.__jsSubmitHandlerInstalled = true;
+    document.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.js-submit');
+        if (!btn) return;
+        try {
+            e.preventDefault();
+            const form = btn.form || btn.closest('form');
+            if (!form) return;
+
+            // Avoid duplicate processing
+            if (btn.dataset.processing === 'true') return;
+            btn.dataset.processing = 'true';
+
+            // Determine which form type and validate
+            if (form.closest('#donor-form-view')) {
+                if (!validateDonorForm(form)) {
+                    btn.dataset.processing = 'false';
+                    return;
+                }
+                // Build data and submit (same mapping as donorSubmitHandler)
+                const fd = new FormData(form);
+                const data = {
+                    manufacturer: fd.get('brand') || '',
+                    model: fd.get('model') || '',
+                    serial: fd.get('serial') || '',
+                    year: parseInt(fd.get('year')) || 2020,
+                    height: fd.get('type') || '',
+                    finish: fd.get('condition') || '',
+                    color_wood: fd.get('color_wood') || '',
+                    city_state: fd.get('city') || '',
+                    access: fd.get('access') || ''
+                };
+
+                btn.disabled = true;
+                btn.textContent = 'Submitting...';
+                try {
+                    const res = await submitFormData('/api/registration', data);
+                    if (res && res.id) {
+                        showSuccessModal('Thank you for registering your piano! A specialist will contact you within 48 hours for assessment.');
+                        form.reset();
+                        setTimeout(() => {
+                            const modal = document.querySelector('.success-modal-overlay');
+                            if (modal) modal.remove();
+                            showSection('home');
+                        }, 5000);
+                    } else {
+                        showFormMessage(form, res.message || 'Submission failed. Please try again.', 'error');
+                    }
+                } catch (err) {
+                    console.error('Error submitting via delegated handler:', err);
+                    showFormMessage(form, 'Network error. Please check your connection and try again.', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Registry';
+                    btn.dataset.processing = 'false';
+                }
+            } else if (form.closest('#school-form-view')) {
+                if (!validateSchoolForm(form)) {
+                    btn.dataset.processing = 'false';
+                    return;
+                }
+                const fd = new FormData(form);
+                const data = {
+                    info1: fd.get('school-name') || '',
+                    info2: fd.get('current-pianos') || '',
+                    info3: fd.get('preferred-type') || '',
+                    info4: fd.get('teacher-name') || '',
+                    info5: fd.get('background') || '',
+                    info6: 'Maintenance commitment accepted'
+                };
+                btn.disabled = true;
+                btn.textContent = 'Submitting...';
+                try {
+                    const res = await submitFormData('/api/requirements', data);
+                    if (res && res.success !== false) {
+                        showSuccessModal('Submission successful');
+                        form.reset();
+                        setTimeout(() => {
+                            const modal = document.querySelector('.success-modal-overlay');
+                            if (modal) modal.remove();
+                            showSection('home');
+                        }, 5000);
+                    } else {
+                        showFormMessage(form, res.message || 'Submission failed. Please try again.', 'error');
+                    }
+                } catch (err) {
+                    console.error('Error submitting requirements via delegated handler:', err);
+                    showFormMessage(form, 'Network error. Please check your connection and try again.', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Application';
+                    btn.dataset.processing = 'false';
+                }
+            } else {
+                // Fallback: dispatch submit event on form
+                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                btn.dataset.processing = 'false';
+            }
+        } catch (err) {
+            console.error('js-submit handler error:', err);
+            try { btn.dataset.processing = 'false'; } catch (_) {}
+        }
+    }, false);
+}
 
