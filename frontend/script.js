@@ -56,6 +56,11 @@ function initForms() {
         if (!donorForm.dataset.listenerAttached) {
             console.log('Binding submit event to donor form (robust)');
 
+            // Helper to find the submit-like button regardless of its `type` attribute
+            const findSubmitButton = (formEl) => {
+                return formEl.querySelector('button[type="submit"], button[type="button"], button:not([type])');
+            };
+
             // Shared submit handler function
             const donorSubmitHandler = async function(e) {
                 if (e && e.preventDefault) e.preventDefault();
@@ -70,7 +75,7 @@ function initForms() {
                 console.log('Form validation passed');
 
                 // Disable submit button to prevent double submission
-                const submitBtn = form.querySelector('button[type="submit"]');
+                const submitBtn = findSubmitButton(form);
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.textContent = 'Submitting...';
@@ -121,10 +126,10 @@ function initForms() {
             // Bind submit event
             donorForm.addEventListener('submit', donorSubmitHandler);
 
-            // Also bind click on submit button to ensure JS path is used even if browser triggers default submit
-            const submitBtn = donorForm.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.addEventListener('click', function(ev) {
+            // Also bind click on submit-like button to ensure JS path is used even if browser triggers default submit
+            const submitBtnEl = findSubmitButton(donorForm);
+            if (submitBtnEl) {
+                submitBtnEl.addEventListener('click', function(ev) {
                     ev.preventDefault();
                     donorSubmitHandler();
                 });
@@ -144,7 +149,9 @@ function initForms() {
             if (!validateSchoolForm(this)) return;
 
             // Disable submit button to prevent double submission
-            const submitBtn = this.querySelector('button[type="submit"]');
+            const submitBtn = (function(formEl){
+                return formEl.querySelector('button[type="submit"], button[type="button"], button:not([type])');
+            })(this);
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
 
@@ -197,7 +204,9 @@ function initForms() {
             const form = this;
             if (!validateContactForm(form)) return;
 
-            const submitBtn = form.querySelector('button[type="submit"]');
+            const submitBtn = (function(formEl){
+                return formEl.querySelector('button[type="submit"], button[type="button"], button:not([type])');
+            })(form);
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Submitting...';
@@ -589,8 +598,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add loading states for buttons
-    const buttons = document.querySelectorAll('button[type="submit"]');
+    // Add loading states for buttons (include buttons without explicit type)
+    const buttons = document.querySelectorAll('button[type="submit"], button:not([type])');
     buttons.forEach(button => {
         button.addEventListener('click', function() {
             if (this.form && this.form.checkValidity()) {
