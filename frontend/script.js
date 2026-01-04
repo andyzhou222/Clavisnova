@@ -620,8 +620,10 @@ document.addEventListener('click', function(e) {
 
         // If button is inside a form and is not a native submit (type="button" or no type),
         // dispatch a synthetic 'submit' event on the form so attached submit handlers run.
-        const form = btn.form || btn.closest('form');
-        if (form && (btn.type === 'button' || !btn.hasAttribute('type'))) {
+    const form = btn.form || btn.closest('form');
+    // If this button is handled by the dedicated .js-submit handler, skip this generic dispatcher
+    if (btn.matches && btn.matches('.js-submit')) return;
+    if (form && (btn.type === 'button' || !btn.hasAttribute('type'))) {
             e.preventDefault();
             // dispatch submit event that bubbles and is cancelable
             form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
