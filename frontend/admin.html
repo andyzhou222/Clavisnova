@@ -377,7 +377,8 @@
 
     <script>
         // API base used by admin page; points to backend service
-        const API_BASE = 'https://clavisnova.onrender.com';
+        // Expose as window.API_BASE to avoid duplicate const declarations when script.js also defines API_BASE.
+        window.API_BASE = window.API_BASE || 'https://clavisnova.onrender.com';
 
     </script>
     <script>
