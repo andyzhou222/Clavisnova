@@ -376,6 +376,11 @@
     </main>
 
     <script>
+        // API base used by admin page; points to backend service
+        const API_BASE = 'https://clavisnova.onrender.com';
+
+    </script>
+    <script>
         let currentTab = 'registrations';
         let currentPage = 1;
         const itemsPerPage = 10;
@@ -387,7 +392,7 @@
         });
 
         function loadStats() {
-            fetch('/api/admin/stats')
+            fetch(`${API_BASE}/api/admin/stats`)
                 .then(response => response.json())
                 .then(data => {
                     // Handle both old format (direct stats) and new format (wrapped in success)
@@ -443,7 +448,7 @@
             document.getElementById('registrations-empty').style.display = 'none';
             document.getElementById('registrations-pagination').style.display = 'none';
 
-            fetch(`/api/admin/registrations?page=${page}&limit=${itemsPerPage}`)
+            fetch(`${API_BASE}/api/admin/registrations?page=${page}&limit=${itemsPerPage}`)
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('registrations-loading').style.display = 'none';
@@ -472,7 +477,7 @@
             document.getElementById('requirements-empty').style.display = 'none';
             document.getElementById('requirements-pagination').style.display = 'none';
 
-            fetch(`/api/admin/requirements?page=${page}&limit=${itemsPerPage}`)
+            fetch(`${API_BASE}/api/admin/requirements?page=${page}&limit=${itemsPerPage}`)
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('requirements-loading').style.display = 'none';
@@ -666,8 +671,8 @@
             closeDeleteModal(); // Close the modal first
 
             const endpoint = type === 'registration'
-                ? `/api/admin/delete/registration/${id}`
-                : type === 'requirement' ? `/api/admin/delete/requirement/${id}` : `/api/admin/delete/contact/${id}`;
+                ? `${API_BASE}/api/admin/delete/registration/${id}`
+                : type === 'requirement' ? `${API_BASE}/api/admin/delete/requirement/${id}` : `${API_BASE}/api/admin/delete/contact/${id}`;
 
             fetch(endpoint, {
                 method: 'GET'
@@ -747,7 +752,7 @@
                 const total = 2;
 
                 // Export registrations
-                fetch('/api/admin/export/registrations')
+                fetch(`${API_BASE}/api/admin/export/registrations`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Export failed');
@@ -776,7 +781,7 @@
                     });
 
                 // Export requirements
-                fetch('/api/admin/export/requirements')
+                fetch(`${API_BASE}/api/admin/export/requirements`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Export failed');
@@ -819,7 +824,7 @@
             document.getElementById('contacts-empty').style.display = 'none';
             document.getElementById('contacts-pagination').style.display = 'none';
 
-            fetch(`/api/admin/contacts?page=${page}&limit=${itemsPerPage}`)
+            fetch(`${API_BASE}/api/admin/contacts?page=${page}&limit=${itemsPerPage}`)
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('contacts-loading').style.display = 'none';
