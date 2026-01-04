@@ -56,9 +56,11 @@ function initForms() {
         if (!donorForm.dataset.listenerAttached) {
             console.log('Binding submit event to donor form (robust)');
 
-            // Helper to find the submit-like button regardless of its `type` attribute
+            // Helper to find the submit button: prefer explicit .js-submit, fall back to type selectors
             const findSubmitButton = (formEl) => {
-                return formEl.querySelector('button[type="submit"], button[type="button"], button:not([type])');
+                return formEl.querySelector('.js-submit') ||
+                    formEl.querySelector('button[type="submit"]') ||
+                    formEl.querySelector('button[type="button"], button:not([type])');
             };
 
             // Shared submit handler function
