@@ -33,6 +33,16 @@ class Settings:
         self.log_max_size: int = int(os.getenv("LOG_MAX_SIZE", str(10*1024*1024)))  # 10MB
         self.log_retention: int = int(os.getenv("LOG_RETENTION", "30"))  # days
 
+        # Email settings
+        self.mail_server: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+        self.mail_port: int = int(os.getenv("MAIL_PORT", "587"))
+        self.mail_use_tls: bool = self._get_env_bool("MAIL_USE_TLS", True)
+        self.mail_use_ssl: bool = self._get_env_bool("MAIL_USE_SSL", False)
+        self.mail_username: str = os.getenv("MAIL_USERNAME", "")
+        self.mail_password: str = os.getenv("MAIL_PASSWORD", "")
+        self.mail_default_sender: str = os.getenv("MAIL_DEFAULT_SENDER", "")
+        self.notification_email: str = os.getenv("NOTIFICATION_EMAIL", "")  # 通知接收邮箱
+
         # Data paths
         self.data_dir: Path = Path("./data")
         self.logs_dir: Path = Path("./logs")

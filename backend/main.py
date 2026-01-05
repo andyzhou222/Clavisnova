@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file, send_from_directory, abort
 from flask_cors import CORS
+from flask_mail import Mail, Message
 from sqlalchemy import text
 import time
 import json
@@ -24,12 +25,107 @@ from schemas import (
 from logger import logger_manager
 from models import create_tables
 
+# Email notification helper function
+def send_notification_email(form_type: str, form_data: dict):
+    """Send notification email when a form is submitted"""
+    try:
+        if not settings.notification_email:
+            logger_manager.logger.warning("Notification email not configured, skipping email notification")
+            return
+
+        # Prepare email content based on form type
+        if form_type == "registration":
+            subject = "🎹 新的钢琴捐赠登记 - Clavisnova"
+            body = f"""
+亲爱的管理员，
+
+您收到了一份新的钢琴捐赠登记：
+
+捐赠信息：
+- 制造商: {form_data.get('manufacturer', 'N/A')}
+- 型号: {form_data.get('model', 'N/A')}
+- 序列号: {form_data.get('serial', 'N/A')}
+- 年份: {form_data.get('year', 'N/A')}
+- 类型: {form_data.get('height', 'N/A')}
+- 地点: {form_data.get('city_state', 'N/A')}
+- 联系方式: {form_data.get('access', 'N/A')}
+
+请及时查看管理员后台处理此捐赠请求。
+
+此邮件由 Clavisnova 系统自动发送。
+"""
+
+        elif form_type == "requirements":
+            subject = "🎹 新的学校需求提交 - Clavisnova"
+            body = f"""
+亲爱的管理员，
+
+您收到了一份新的学校钢琴需求提交：
+
+学校信息：
+- 学校名称: {form_data.get('school_name', 'N/A')}
+- 现有钢琴: {form_data.get('current_pianos', 'N/A')}
+- 偏好类型: {form_data.get('preferred_type', 'N/A')}
+- 教师姓名: {form_data.get('teacher_name', 'N/A')}
+
+请及时查看管理员后台处理此需求。
+
+此邮件由 Clavisnova 系统自动发送。
+"""
+
+        elif form_type == "contact":
+            subject = "🎹 新的联系表单提交 - Clavisnova"
+            body = f"""
+亲爱的管理员，
+
+您收到了一份新的联系表单提交：
+
+联系信息：
+- 姓名: {form_data.get('name', 'N/A')}
+- 邮箱: {form_data.get('email', 'N/A')}
+- 消息内容: {form_data.get('message', 'N/A')}
+
+请及时回复用户咨询。
+
+此邮件由 Clavisnova 系统自动发送。
+"""
+
+        else:
+            return
+
+        # Send email
+        msg = Message(
+            subject=subject,
+            recipients=[settings.notification_email],
+            body=body
+        )
+
+        mail.send(msg)
+        logger_manager.logger.info(f"Notification email sent for {form_type} submission")
+
+    except Exception as e:
+        logger_manager.logger.error(f"Failed to send notification email: {e}")
+        # Don't raise exception to avoid breaking the main flow
+
 # Initialize Flask app
 # Note: Static files are served by Cloudflare Pages, not by this Flask app
 app = Flask(__name__)
 
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = settings.mail_server
+app.config['MAIL_PORT'] = settings.mail_port
+app.config['MAIL_USE_TLS'] = settings.mail_use_tls
+app.config['MAIL_USE_SSL'] = settings.mail_use_ssl
+app.config['MAIL_USERNAME'] = settings.mail_username
+app.config['MAIL_PASSWORD'] = settings.mail_password
+app.config['MAIL_DEFAULT_SENDER'] = settings.mail_default_sender
+
+# Initialize Flask-Mail
+mail = Mail(app)
+
 print("✅ Backend-only deployment: Frontend served by Cloudflare Pages")
 print("✅ Static file serving disabled in Flask app")
+print(f"✅ Mail service configured: {settings.mail_server}:{settings.mail_port}")
 
 # CORS - enable for configured frontend origins
 from flask_cors import CORS as _CORS
@@ -218,6 +314,19 @@ def create_registration():
             db.close()
 
         response = RegistrationResponse(id=result_id, message="Registration created successfully")
+
+        # Send notification email
+        notification_data = {
+            'manufacturer': registration.manufacturer,
+            'model': registration.model,
+            'serial': registration.serial,
+            'year': registration.year,
+            'height': registration.height,
+            'city_state': registration.city_state,
+            'access': registration.access
+        }
+        send_notification_email("registration", notification_data)
+
         logger_manager.logger.info(f"Registration API completed successfully")
         return jsonify(response.__dict__), 201
 
@@ -290,6 +399,16 @@ def create_requirements():
             db.close()
 
         response = RequirementsResponse(id=result_id, message="Requirements submitted successfully")
+
+        # Send notification email
+        notification_data = {
+            'school_name': requirements.school_name,
+            'current_pianos': requirements.current_pianos,
+            'preferred_type': requirements.preferred_type,
+            'teacher_name': requirements.teacher_name
+        }
+        send_notification_email("requirements", notification_data)
+
         return jsonify(response.__dict__), 201
 
     except ValidationError as e:
@@ -345,6 +464,14 @@ def create_contact():
             cid = contact.id
         finally:
             db.close()
+
+        # Send notification email
+        notification_data = {
+            'name': name,
+            'email': email,
+            'message': message_text
+        }
+        send_notification_email("contact", notification_data)
 
         return jsonify({"id": cid, "message": "Contact submitted"}), 201
     except Exception as e:

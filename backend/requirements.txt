@@ -1,6 +1,7 @@
 # 核心Web框架 - 使用Flask，完全避免pydantic问题
 flask==2.3.3
 flask-cors==4.0.0
+flask-mail==0.9.1
 werkzeug==2.3.7
 
 # 数据库 - 使用较新 1.4.x 以支持 psycopg3 方言入口
