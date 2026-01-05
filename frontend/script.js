@@ -571,7 +571,7 @@ async function submitFormData(endpoint, data, maxRetries = 2) {
 
             // Create AbortController for timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (increased for slow networks)
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -599,7 +599,7 @@ async function submitFormData(endpoint, data, maxRetries = 2) {
             // If this is the last attempt, throw the error
             if (attempt === maxRetries) {
                 if (error.name === 'AbortError') {
-                    throw new Error('Request timed out. Please check your connection and try again.');
+                    throw new Error('Request timed out after 30 seconds. The server might be slow or your network connection is poor. Please try again.');
                 } else if (error.message.includes('fetch')) {
                     throw new Error('Network connection failed. Please check your internet connection.');
                 } else {
